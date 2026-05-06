@@ -1,19 +1,26 @@
-import asyncio
-import json
-from pathlib import Path
+import subprocess
 from playwright.async_api import async_playwright
 
-AUTH_FILE = Path(__file__).parent.parent.parent.parent / "auth.json"
 NOTEBOOKLM_URL = "https://notebooklm.google.com"
+EDGE_USER_DATA = r"C:\Users\user\AppData\Local\Microsoft\Edge\User Data"
+EDGE_PROFILE = "Default"
+
+
+def _kill_edge() -> None:
+    subprocess.run(["taskkill", "/F", "/IM", "msedge.exe"], capture_output=True)
+    subprocess.run(["taskkill", "/F", "/IM", "msedgewebview2.exe"], capture_output=True)
 
 
 async def run(file_path: str, title: str = "DocMind Notebook") -> str:
-    if not AUTH_FILE.exists():
-        raise RuntimeError("auth.json not found. Run setup_auth.py first.")
+    _kill_edge()
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(storage_state=str(AUTH_FILE))
+        context = await p.chromium.launch_persistent_context(
+            user_data_dir=EDGE_USER_DATA,
+            channel="msedge",
+            headless=False,
+            args=[f"--profile-directory={EDGE_PROFILE}"],
+        )
         page = await context.new_page()
 
         await page.goto(NOTEBOOKLM_URL, wait_until="domcontentloaded", timeout=30000)
@@ -64,7 +71,7 @@ async def run(file_path: str, title: str = "DocMind Notebook") -> str:
             await anyone_option.click()
             await page.wait_for_timeout(1000)
 
-        # Copy link button
+        # Copy link
         copy_btn = page.get_by_role("button", name="複製連結")
         if await copy_btn.is_visible():
             await copy_btn.click()
@@ -72,5 +79,4 @@ async def run(file_path: str, title: str = "DocMind Notebook") -> str:
 
         notebook_url = page.url
         await context.close()
-        await browser.close()
         return notebook_url

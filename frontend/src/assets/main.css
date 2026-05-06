@@ -3,25 +3,41 @@
 @tailwind utilities;
 
 :root {
-  --color-bg-base:        #fffef3;
-  --color-bg-elevated:    #fdf6e3;
-  --color-bg-surface:     #ffffff;
+  /* Background — PicVault Dim theme */
+  --color-bg-base:        #e8dfc8;
+  --color-bg-surface:     #f0e8d4;
+  --color-bg-elevated:    #f8f2e4;
 
-  --color-border:         #e3e6f0;
-  --color-border-focus:   #f6c23e;
+  /* Border */
+  --color-border:         #d0c4a8;
+  --color-border-focus:   #8c6e3c;
 
+  /* Text */
   --color-text-primary:   #1c1810;
   --color-text-secondary: #4a4030;
   --color-text-muted:     #8a7860;
+  --color-text-on-primary: #f8f2e4;
 
-  --color-primary:        #f6c23e;
-  --color-primary-subtle: rgba(246, 194, 62, 0.15);
+  /* Primary — 暖棕金 */
+  --color-primary:        #8c6e3c;
+  --color-primary-hover:  #7a5e30;
+  --color-primary-subtle: #ddd0b0;
   --color-primary-text:   #6e5228;
 
-  --color-success:        #1cc88a;
-  --color-success-subtle: rgba(28, 200, 138, 0.12);
-  --color-danger:         #e74a3b;
-  --color-danger-subtle:  rgba(231, 74, 59, 0.12);
+  /* Success */
+  --color-success:        #4a7c3f;
+  --color-success-subtle: #d4e8d0;
+  --color-success-text:   #3a6030;
+
+  /* Danger */
+  --color-danger:         #b83c3c;
+  --color-danger-subtle:  #f0d0d0;
+  --color-danger-text:    #8c2828;
+
+  /* Warning */
+  --color-warning:        #a06820;
+  --color-warning-subtle: #f0e0b8;
+  --color-warning-text:   #7a5018;
 }
 
 body {
@@ -29,3 +45,15 @@ body {
   color: var(--color-text-primary);
   font-family: system-ui, sans-serif;
 }
+
+@layer components {
+  .ui-title   { font-size: 1.3125rem; line-height: 1.4; font-weight: 500; }
+  .ui-body    { font-size: 1rem;      line-height: 1.5; font-weight: 400; }
+  .ui-label   { font-size: 0.9375rem; line-height: 1.4; font-weight: 400; }
+  .ui-caption { font-size: 0.875rem;  line-height: 1.4; font-weight: 400; }
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: var(--color-bg-surface); }
+::-webkit-scrollbar-thumb  { background: #b8a888; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #8a7860; }

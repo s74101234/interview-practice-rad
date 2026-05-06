@@ -3,9 +3,6 @@
 .env.*
 *.env
 
-# Playwright auth
-auth.json
-
 # Python
 __pycache__/
 *.py[cod]
