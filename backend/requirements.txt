@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+pydantic-settings
+pymupdf4llm
+python-pptx
+google-genai
+qdrant-client
+fastmcp
+playwright

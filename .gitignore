@@ -1,0 +1,29 @@
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Playwright auth
+auth.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Qdrant local data
+qdrant_storage/
+
+# Editor / OS
+.vscode/settings.json
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
