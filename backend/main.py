@@ -16,6 +16,11 @@ app.include_router(upload.router)
 app.include_router(chat.router)
 app.include_router(status.router)
 
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 # MCP server — optional, mount only if FastMCP ASGI API is compatible
 try:
     from services.mcp.server import mcp
