@@ -17,29 +17,45 @@ UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 
+async def _log(msg: str) -> None:
+    await broadcast("log", {"message": msg})
+
+
 async def _run_pipeline(file_path: str, filename: str) -> None:
     try:
         await broadcast("pipeline_start", {"filename": filename})
+        await _log(f"開始處理：{filename}")
 
+        await _log("解析 PDF 文件結構...")
         pages = await asyncio.to_thread(parser.parse, file_path)
-        await broadcast("pipeline_progress", {"stage": "parse", "message": "解析文件結構"})
+        await _log(f"解析完成，共 {len(pages)} 頁")
+        await broadcast("pipeline_progress", {"stage": "parse"})
 
+        await _log("清洗文字內容...")
         pages = await asyncio.to_thread(cleaner.clean_pages, pages)
-        await broadcast("pipeline_progress", {"stage": "clean", "message": "清洗文字內容"})
+        await _log(f"清洗完成，保留 {len(pages)} 頁")
+        await broadcast("pipeline_progress", {"stage": "clean"})
 
+        await _log("切分段落...")
         chunks = await asyncio.to_thread(chunker.chunk_pages, pages)
-        await broadcast("pipeline_progress", {"stage": "chunk", "message": "切分段落"})
+        await _log(f"切分完成，共 {len(chunks)} 個段落")
+        await broadcast("pipeline_progress", {"stage": "chunk"})
 
+        await _log("建立向量索引...")
         texts = [c["text"] for c in chunks]
         vectors = await asyncio.to_thread(embed_texts, texts)
-        await broadcast("pipeline_progress", {"stage": "embed", "message": "建立向量索引"})
+        await _log(f"向量嵌入完成，共 {len(vectors)} 筆")
+        await broadcast("pipeline_progress", {"stage": "embed"})
 
+        await _log("寫入向量資料庫...")
         await asyncio.to_thread(upsert, chunks, vectors)
+        await _log("完成！知識庫就緒")
 
         state.uploaded_file_path = file_path
         await broadcast("pipeline_done", {"chunk_count": len(chunks), "filename": filename})
 
     except Exception as e:
+        await _log(f"錯誤：{e}")
         await broadcast("pipeline_error", {"message": str(e)})
 
 

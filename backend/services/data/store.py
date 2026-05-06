@@ -7,18 +7,28 @@ from qdrant_client.models import (
     FieldCondition,
     MatchValue,
 )
-from core.config import settings
+from pathlib import Path
 
 COLLECTION = "knowledge_base"
 VECTOR_SIZE = 768
 
-_client = QdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
+_DB_PATH = str(Path(__file__).resolve().parent.parent.parent / "data" / "qdrant")
+_client: QdrantClient | None = None
+
+
+def _get_client() -> QdrantClient:
+    global _client
+    if _client is None:
+        Path(_DB_PATH).mkdir(parents=True, exist_ok=True)
+        _client = QdrantClient(path=_DB_PATH)
+    return _client
 
 
 def _ensure_collection() -> None:
-    existing = [c.name for c in _client.get_collections().collections]
+    client = _get_client()
+    existing = [c.name for c in client.get_collections().collections]
     if COLLECTION not in existing:
-        _client.create_collection(
+        client.create_collection(
             collection_name=COLLECTION,
             vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
         )
@@ -40,12 +50,12 @@ def upsert(chunks: list[dict], vectors: list[list[float]]) -> None:
         )
         for chunk, vector in zip(chunks, vectors)
     ]
-    _client.upsert(collection_name=COLLECTION, points=points)
+    _get_client().upsert(collection_name=COLLECTION, points=points)
 
 
 def search(query_vector: list[float], top_k: int = 5) -> list[dict]:
     _ensure_collection()
-    results = _client.search(
+    results = _get_client().search(
         collection_name=COLLECTION,
         query_vector=query_vector,
         limit=top_k,
@@ -65,6 +75,6 @@ def search(query_vector: list[float], top_k: int = 5) -> list[dict]:
 def count() -> int:
     try:
         _ensure_collection()
-        return _client.count(collection_name=COLLECTION).count
+        return _get_client().count(collection_name=COLLECTION).count
     except Exception:
         return 0

@@ -1,9 +1,18 @@
+import shutil
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routers import upload, chat, status
 
-app = FastAPI(title="DocMind")
+# 清空上傳暫存資料夾
+_UPLOAD_DIR = Path(__file__).parent / "uploads"
+if _UPLOAD_DIR.exists():
+    shutil.rmtree(_UPLOAD_DIR)
+_UPLOAD_DIR.mkdir(exist_ok=True)
+
+app = FastAPI(title="Interview Practice")
 
 app.add_middleware(
     CORSMiddleware,

@@ -11,12 +11,22 @@ export const useUploadStore = defineStore('upload', () => {
   const filename = ref<string | null>(null)
   const error = ref<string | null>(null)
   const isReady = ref(false)
+  const logs = ref<string[]>([])
 
   let es: EventSource | null = null
+
+  function addLog(msg: string) {
+    const time = new Date().toLocaleTimeString('zh-TW', { hour12: false })
+    logs.value.push(`[${time}] ${msg}`)
+  }
 
   function startStatusStream() {
     if (es) return
     es = new EventSource('/status/stream')
+
+    es.onopen = () => {
+      addLog('已連線至後端服務')
+    }
 
     es.addEventListener('pipeline_start', (e) => {
       const d = JSON.parse(e.data)
@@ -24,6 +34,12 @@ export const useUploadStore = defineStore('upload', () => {
       filename.value = d.filename
       error.value = null
       isReady.value = false
+      addLog(`開始處理：${d.filename}`)
+    })
+
+    es.addEventListener('log', (e) => {
+      const d = JSON.parse(e.data)
+      addLog(d.message)
     })
 
     es.addEventListener('pipeline_progress', (e) => {
@@ -37,6 +53,7 @@ export const useUploadStore = defineStore('upload', () => {
       currentStage.value = null
       chunkCount.value = d.chunk_count
       isReady.value = true
+      addLog(`處理完成，共 ${d.chunk_count} 個段落`)
     })
 
     es.addEventListener('pipeline_error', (e) => {
@@ -44,9 +61,11 @@ export const useUploadStore = defineStore('upload', () => {
       isProcessing.value = false
       currentStage.value = null
       error.value = d.message
+      addLog(`錯誤：${d.message}`)
     })
 
     es.onerror = () => {
+      addLog('連線中斷，重新連線中...')
       es?.close()
       es = null
       setTimeout(startStatusStream, 3000)
@@ -54,9 +73,14 @@ export const useUploadStore = defineStore('upload', () => {
   }
 
   async function upload(file: File) {
-    await uploadFile(file)
+    addLog(`上傳檔案：${file.name}`)
+    error.value = null
+    isReady.value = false
+    const data = await uploadFile(file)
+    filename.value = data.filename
+    isProcessing.value = true
     startStatusStream()
   }
 
-  return { isProcessing, currentStage, chunkCount, filename, error, isReady, upload, startStatusStream }
+  return { isProcessing, currentStage, chunkCount, filename, error, isReady, logs, upload, startStatusStream }
 })
