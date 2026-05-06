@@ -19,5 +19,10 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  return { history, isAnswering, send }
+  function clear() {
+    history.value = []
+    isAnswering.value = false
+  }
+
+  return { history, isAnswering, send, clear }
 })

@@ -18,7 +18,7 @@
   --color-text-muted:     #8a7860;
   --color-text-on-primary: #f8f2e4;
 
-  /* Primary — 暖棕金 */
+  /* Primary */
   --color-primary:        #8c6e3c;
   --color-primary-hover:  #7a5e30;
   --color-primary-subtle: #ddd0b0;
@@ -40,17 +40,24 @@
   --color-warning-text:   #7a5018;
 }
 
-body {
-  background-color: var(--color-bg-base);
+html, body {
+  margin: 0; padding: 0;
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--color-bg-base);
   color: var(--color-text-primary);
   font-family: system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
+#app { width: 100%; height: 100%; overflow: hidden; }
+
 @layer components {
-  .ui-title   { font-size: 1.3125rem; line-height: 1.4; font-weight: 500; }
-  .ui-body    { font-size: 1rem;      line-height: 1.5; font-weight: 400; }
-  .ui-label   { font-size: 0.9375rem; line-height: 1.4; font-weight: 400; }
-  .ui-caption { font-size: 0.875rem;  line-height: 1.4; font-weight: 400; }
+  /* 縮小字體對齊一般 web app 比例 */
+  .ui-title   { font-size: 0.9375rem; line-height: 1.4; font-weight: 500; }
+  .ui-body    { font-size: 0.875rem;  line-height: 1.5; font-weight: 400; }
+  .ui-label   { font-size: 0.8125rem; line-height: 1.4; font-weight: 400; }
+  .ui-caption { font-size: 0.75rem;   line-height: 1.4; font-weight: 400; }
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }

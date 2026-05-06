@@ -46,8 +46,8 @@ async def _run_pipeline(file_path: str, filename: str) -> None:
 @router.post("/upload", response_model=UploadResponse)
 async def upload_file(file: UploadFile = File(...)):
     ext = Path(file.filename).suffix.lower()
-    if ext not in (".pdf", ".pptx", ".ppt"):
-        raise HTTPException(status_code=400, detail="Only PDF and PPTX files are supported")
+    if ext != ".pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
 
     job_id = str(uuid.uuid4())
     dest = UPLOAD_DIR / f"{job_id}{ext}"

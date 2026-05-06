@@ -17,7 +17,7 @@
         @drop.prevent="onDrop"
         @click="fileInput?.click()"
       >
-        <input ref="fileInput" type="file" accept=".pdf,.pptx,.ppt" class="hidden" @change="onSelect" />
+        <input ref="fileInput" type="file" accept=".pdf" class="hidden" @change="onSelect" />
 
         <!-- Processing -->
         <template v-if="uploadStore.isProcessing">
@@ -44,7 +44,7 @@
             </svg>
           </div>
           <p class="ui-body text-[--color-text-secondary]">拖曳或點擊上傳</p>
-          <p class="ui-caption text-[--color-text-muted] mt-1">支援 PDF、PPTX</p>
+          <p class="ui-caption text-[--color-text-muted] mt-1">支援 PDF</p>
         </template>
 
       </div>
