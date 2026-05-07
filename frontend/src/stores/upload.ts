@@ -34,7 +34,6 @@ export const useUploadStore = defineStore('upload', () => {
       filename.value = d.filename
       error.value = null
       isReady.value = false
-      addLog(`開始處理：${d.filename}`)
     })
 
     es.addEventListener('log', (e) => {
@@ -72,6 +71,20 @@ export const useUploadStore = defineStore('upload', () => {
     }
   }
 
+  async function restoreState() {
+    try {
+      const res = await fetch('/status')
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.ready) {
+        filename.value = data.filename
+        chunkCount.value = data.chunk_count
+        isReady.value = true
+        addLog(`恢復狀態：${data.filename}（${data.chunk_count} 個段落）`)
+      }
+    } catch { /* ignore */ }
+  }
+
   async function upload(file: File) {
     addLog(`上傳檔案：${file.name}`)
     error.value = null
@@ -82,5 +95,5 @@ export const useUploadStore = defineStore('upload', () => {
     startStatusStream()
   }
 
-  return { isProcessing, currentStage, chunkCount, filename, error, isReady, logs, upload, startStatusStream }
+  return { isProcessing, currentStage, chunkCount, filename, error, isReady, logs, upload, startStatusStream, restoreState }
 })

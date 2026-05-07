@@ -30,6 +30,16 @@ app.include_router(status.router)
 async def health():
     return {"status": "ok"}
 
+
+@app.get("/status")
+async def get_status():
+    import core.app_state as state
+    return {
+        "filename": state.last_filename,
+        "chunk_count": state.last_chunk_count,
+        "ready": state.last_filename is not None,
+    }
+
 # MCP server — optional, mount only if FastMCP ASGI API is compatible
 try:
     from services.mcp.server import mcp

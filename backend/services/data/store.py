@@ -10,7 +10,7 @@ from qdrant_client.models import (
 from pathlib import Path
 
 COLLECTION = "knowledge_base"
-VECTOR_SIZE = 768
+VECTOR_SIZE = 3072
 
 _DB_PATH = str(Path(__file__).resolve().parent.parent.parent / "data" / "qdrant")
 _client: QdrantClient | None = None

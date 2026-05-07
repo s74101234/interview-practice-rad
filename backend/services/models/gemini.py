@@ -3,7 +3,7 @@ from google.genai import types
 from core.config import settings
 
 _client = genai.Client(api_key=settings.gemini_api_key)
-MODEL = "gemini-2.0-flash"
+MODEL = "gemini-2.5-flash"
 
 TOOLS = [
     types.Tool(

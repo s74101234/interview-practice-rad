@@ -48,6 +48,7 @@ import { useUploadStore } from '../stores/upload'
 
 const uploadStore = useUploadStore()
 uploadStore.startStatusStream()
+uploadStore.restoreState()
 
 const stageLabels: Record<string, string> = {
   parse: '解析文件', clean: '清洗文字', chunk: '切分段落', embed: '建立索引',

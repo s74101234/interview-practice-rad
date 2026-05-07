@@ -26,32 +26,46 @@ async def _run_pipeline(file_path: str, filename: str) -> None:
         await broadcast("pipeline_start", {"filename": filename})
         await _log(f"開始處理：{filename}")
 
-        await _log("解析 PDF 文件結構...")
+        # 解析
+        await _log("解析 PDF 文件結構（pymupdf4llm → Markdown）...")
         pages = await asyncio.to_thread(parser.parse, file_path)
-        await _log(f"解析完成，共 {len(pages)} 頁")
+        total_chars = sum(len(p["content"]) for p in pages)
+        if len(pages) == 0:
+            await _log("警告：未擷取到任何文字，PDF 可能為圖片型，請改用文字型 PDF")
+        else:
+            await _log(f"解析完成：{len(pages)} 頁，共 {total_chars:,} 字元")
         await broadcast("pipeline_progress", {"stage": "parse"})
 
-        await _log("清洗文字內容...")
+        # 清洗
+        await _log("清洗文字（移除頁碼、多餘空白）...")
         pages = await asyncio.to_thread(cleaner.clean_pages, pages)
-        await _log(f"清洗完成，保留 {len(pages)} 頁")
+        clean_chars = sum(len(p["content"]) for p in pages)
+        await _log(f"清洗完成：保留 {len(pages)} 頁，{clean_chars:,} 字元")
         await broadcast("pipeline_progress", {"stage": "clean"})
 
-        await _log("切分段落...")
+        # 切分
+        await _log(f"切分段落（每段上限 600 字元，重疊一句）...")
         chunks = await asyncio.to_thread(chunker.chunk_pages, pages)
-        await _log(f"切分完成，共 {len(chunks)} 個段落")
+        total_chunk_chars = sum(c["char_count"] for c in chunks)
+        avg = round(total_chunk_chars / len(chunks)) if chunks else 0
+        await _log(f"切分完成：{len(chunks)} 個段落，共 {total_chunk_chars:,} 字元，平均 {avg} 字元／段")
         await broadcast("pipeline_progress", {"stage": "chunk"})
 
-        await _log("建立向量索引...")
+        # 向量嵌入
+        await _log(f"向量嵌入（gemini-embedding-001，3072 維，批次 100）...")
         texts = [c["text"] for c in chunks]
         vectors = await asyncio.to_thread(embed_texts, texts)
-        await _log(f"向量嵌入完成，共 {len(vectors)} 筆")
+        await _log(f"嵌入完成：{len(vectors)} 筆向量")
         await broadcast("pipeline_progress", {"stage": "embed"})
 
-        await _log("寫入向量資料庫...")
+        # 寫入
+        await _log("寫入向量資料庫（Qdrant 本地，collection: knowledge_base）...")
         await asyncio.to_thread(upsert, chunks, vectors)
-        await _log("完成！知識庫就緒")
+        await _log(f"完成！knowledge_base 已就緒，共 {len(chunks)} 個段落可供檢索")
 
         state.uploaded_file_path = file_path
+        state.last_filename = filename
+        state.last_chunk_count = len(chunks)
         await broadcast("pipeline_done", {"chunk_count": len(chunks), "filename": filename})
 
     except Exception as e:

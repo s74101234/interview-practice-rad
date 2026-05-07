@@ -6,6 +6,7 @@ pydantic-settings
 pymupdf4llm
 python-pptx
 google-genai
+google-generativeai
 qdrant-client
 fastmcp
 playwright
