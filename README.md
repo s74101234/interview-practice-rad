@@ -1,6 +1,6 @@
-# DocMind
+# Interview Practice
 
-An AI-powered document intelligence system. Upload a PDF or PPTX, ask questions about it in natural language, and generate a shareable NotebookLM notebook — all in one interface.
+An AI-powered document Q&A system. Upload a personal PDF, ask questions about it in natural language, and generate a shareable NotebookLM notebook — all in one interface.
 
 Built as a take-home assignment for the **AI Application Engineer** position at **瑞鼎科技 (RAD-IC)**, integrating all three tasks into a single deployable system.
 
@@ -10,9 +10,9 @@ Built as a take-home assignment for the **AI Application Engineer** position at 
 
 | Task | Requirement | Implementation |
 |---|---|---|
-| Task 1 | Unstructured Data Pipeline & Remote MCP Server | Ingestion pipeline (parse → clean → chunk → embed) + FastMCP server exposing `search_knowledge` and `create_notebooklm` |
+| Task 1 | Unstructured Data Pipeline & Remote MCP Server | PDF ingestion pipeline (parse → clean → chunk → embed) + FastMCP server exposing `search_knowledge` and `create_notebooklm` |
 | Task 2 | Data Preprocessing as Claude Skills | `/parse-doc` `/clean-text` `/chunk-doc` `/build-kb` — Claude Code Skills sharing the same ingestion logic |
-| Task 3 | Browser Automation Agent | Playwright automates NotebookLM to create a notebook from the uploaded document and returns a shareable URL |
+| Task 3 | Browser Automation Agent | Playwright automates NotebookLM via Edge persistent context to create a notebook from the uploaded PDF and returns a shareable URL |
 
 ---
 
@@ -20,18 +20,18 @@ Built as a take-home assignment for the **AI Application Engineer** position at 
 
 | Feature | Description |
 |---|---|
-| Document Upload | Accepts PDF and PPTX; triggers background ingestion pipeline |
-| Knowledge Base | Chunked document content embedded via Gemini and stored in Qdrant |
-| AI Chat | Gemini Function Calling — automatically queries knowledge base or creates NotebookLM based on user intent |
+| Document Upload | Accepts PDF; triggers background ingestion pipeline (parse → clean → chunk → embed) |
+| Knowledge Base | Chunked content embedded via gemini-embedding-001 (3072-dim) and stored in Qdrant |
+| AI Chat | Gemini ReAct agent — queries knowledge base or creates NotebookLM based on user intent |
 | MCP Server | External agents can connect and call `search_knowledge` or `create_notebooklm` |
-| NotebookLM | Playwright creates a notebook from the uploaded document and returns a public sharing link |
+| NotebookLM | Playwright automates Edge to create a notebook from the uploaded PDF and returns a shareable link |
 
 ---
 
 ## Project Structure
 
 ```
-docmind/
+interview-practice-rad/
 ├── backend/
 │   ├── main.py
 │   ├── core/
@@ -41,9 +41,13 @@ docmind/
 │       ├── models/
 │       ├── data/
 │       ├── mcp/
-│       │   └── tools/
+│       │   └── tools/          # .py + .json schema per tool
 │       └── chat/
+│           ├── tools/          # load_tools() reads mcp/tools/*.json
+│           └── prompts/        # prompt_system.md + prompt_react.md
 ├── frontend/
+├── task2/                      # Claude Code Skills
+├── task3/                      # Standalone browser automation agent
 ├── docs/
 │   ├── 01-backend.md
 │   └── 02-frontend.md

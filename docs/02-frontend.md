@@ -1,6 +1,6 @@
 # 02. 前端設計
 
-> 最後更新：2026-05-06
+> 最後更新：2026-05-07
 
 ---
 
@@ -20,41 +20,50 @@
 
 ```
 frontend/
-├── src/
-│   ├── main.ts
-│   ├── App.vue
-│   ├── assets/
-│   │   └── main.css
-│   ├── api/
-│   │   ├── upload.ts
-│   │   └── chat.ts
-│   ├── stores/
-│   │   ├── upload.ts
-│   │   └── chat.ts
-│   ├── views/
-│   │   └── MainView.vue
-│   └── components/
-│       ├── UploadPanel.vue
-│       ├── ProgressPanel.vue
-│       └── ChatPanel.vue
-├── vite.config.ts
-├── tailwind.config.ts
-└── package.json
+├── index.html
+└── src/
+    ├── main.ts
+    ├── App.vue
+    ├── assets/
+    │   └── main.css
+    ├── api/
+    │   ├── upload.ts
+    │   └── chat.ts
+    ├── stores/
+    │   ├── upload.ts
+    │   └── chat.ts
+    ├── views/
+    │   └── MainView.vue
+    └── components/
+        ├── UploadPanel.vue
+        ├── ChatPanel.vue
+        ├── ProgressPanel.vue
+        ├── chat/
+        │   └── PromptSuggestions.vue
+        ├── layout/
+        │   ├── LeftPanel.vue
+        │   ├── RightPanel.vue
+        │   └── SideNav.vue
+        └── sections/
+            ├── StatusSection.vue
+            └── UploadSection.vue
 ```
 
 ---
 
 ## 第三部分：頁面結構
 
-上下兩區，中間可拖拉調整比例：
+左右兩欄佈局：
 
 ```
-┌─────────────────────────────────────┐
-│  UploadPanel + ProgressPanel        │
-├──────────────── drag ───────────────┤
-│  ChatPanel                          │
-│  （NotebookLM URL 內嵌於對話回覆）  │
-└─────────────────────────────────────┘
+┌──────────────┬────────────────────────────┐
+│  SideNav     │  RightPanel                │
+│              │  ┌──────────────────────┐  │
+│  LeftPanel   │  │  ChatPanel           │  │
+│  UploadPanel │  │  PromptSuggestions   │  │
+│  StatusSection│  │  對話訊息列表        │  │
+│              │  │  輸入框              │  │
+└──────────────┴──┴──────────────────────┴──┘
 ```
 
 ---
@@ -93,7 +102,7 @@ sendMessage(message: string)   // POST /chat
 
 ### `UploadPanel.vue`
 
-拖曳或點擊上傳 PDF / PPTX（`accept=".pdf,.pptx"`）。
+拖曳或點擊上傳 PDF（`accept=".pdf"`）。
 
 | 狀態 | 說明 |
 |---|---|
@@ -115,17 +124,17 @@ done    ██████ 100%   知識庫就緒
 
 ### `ChatPanel.vue`
 
-與 Gemini 對話，Gemini 自動判斷是否呼叫工具。NotebookLM URL 直接出現在對話回覆中。
+與 ReAct agent 對話，agent 自動判斷是否呼叫工具。
 
 ```
-[使用者] 這份文件的主要內容是什麼？
+[使用者] 作者有哪些技術能力與專案經驗？
 
-[助理] 根據文件內容，主要涵蓋...
+[助理] 根據文件內容，主要技術能力包含...
        [ 已查詢知識庫 ]
 
-[使用者] 幫我建立一份簡報
+[使用者] 幫我建立 NotebookLM 筆記本
 
-[助理] 已為您建立 NotebookLM 筆記本，點擊下方連結查看：
+[助理] 已為您建立 NotebookLM 筆記本：
        https://notebooklm.google.com/...
        [ 已建立 NotebookLM ]
 ```
@@ -133,6 +142,16 @@ done    ██████ 100%   知識庫就緒
 - 輸入框 + 送出按鈕（Enter 鍵觸發）
 - 回答中顯示 loading（三點動畫）
 - 知識庫未建立時輸入框 disabled
+
+### `PromptSuggestions.vue`
+
+知識庫就緒後顯示三個預設問題，點擊直接送出：
+
+| 問題 | 對應能力 |
+|---|---|
+| 這個系統有什麼功能？ | 系統自我介紹（不呼叫工具）|
+| 作者有哪些技術能力與專案經驗？ | search_knowledge |
+| 幫我將這份文件建立成 NotebookLM 簡報 | create_notebooklm |
 
 ---
 

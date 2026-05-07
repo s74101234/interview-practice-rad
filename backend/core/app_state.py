@@ -4,10 +4,8 @@ from typing import Optional
 # SSE broadcast queue — one queue shared across all clients
 _sse_queue: asyncio.Queue = asyncio.Queue()
 
-# Latest uploaded file path (for create_notebooklm)
-uploaded_file_path: Optional[str] = None
-
 # Latest upload state — survives page refresh
+uploaded_file_path: Optional[str] = None
 last_filename: Optional[str] = None
 last_chunk_count: int = 0
 

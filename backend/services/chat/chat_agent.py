@@ -1,76 +1,190 @@
 import asyncio
-from google.genai import types
+import ast
+import json
+import logging
+import re
+from datetime import datetime
+from pathlib import Path
+
 from services.models import gemini
-from services.mcp.tools import search_knowledge, create_notebooklm
+from services.mcp.tools import search_knowledge, notebooklm
+from services.chat.tools import load_tools
 import core.app_state as state
+from core.app_state import broadcast
 
-SYSTEM = (
-    "你是一個文件助理，協助使用者查詢已上傳文件的內容，或建立 NotebookLM 筆記本。"
-    "若使用者詢問文件內容，請使用 search_knowledge 工具搜尋後回答。"
-    "若使用者提及建立簡報、分享、筆記本，請使用 create_notebooklm 工具。"
-    "若知識庫尚未建立，請提示使用者先上傳文件。"
-)
+logger = logging.getLogger("interview.chat.agent")
+
+# ── Parameters ────────────────────────────────────────────────
+MAX_ITERATIONS = 6
+_PROMPTS_DIR   = Path(__file__).parent / "prompts"
+
+# ── Tool registry — loaded from schemas/ JSON files ────────────
+_TOOLS = load_tools()
 
 
-async def _execute_tool(name: str, args: dict) -> tuple[str, str]:
-    """Execute a tool and return (result_text, tool_label)."""
+# ── Prompt loader ──────────────────────────────────────────────
+def _load_prompt(filename: str) -> str:
+    return (_PROMPTS_DIR / filename).read_text(encoding="utf-8").strip()
+
+
+def _build_tools_context(tools: list[dict]) -> str:
+    blocks = []
+    for entry in tools:
+        fn = entry.get("function", entry)
+        name = fn["name"]
+        desc = fn["description"]
+        props = fn.get("parameters", {}).get("properties", {})
+        required = fn.get("parameters", {}).get("required", [])
+        lines = [f"## {name}", desc]
+        for k, v in props.items():
+            req = "必填" if k in required else "選填"
+            lines.append(f"  - {k} ({v['type']}, {req})：{v['description']}")
+        blocks.append("\n".join(lines))
+    return "\n\n".join(blocks)
+
+
+def _fill_template(template: str, **kwargs) -> str:
+    return re.sub(
+        r"\{([a-zA-Z_]\w*)\}",
+        lambda m: str(kwargs.get(m.group(1), m.group(0))),
+        template,
+    )
+
+
+# ── JSON parser ────────────────────────────────────────────────
+def _parse_json(raw: str) -> dict | None:
+    start = raw.find("{")
+    if start == -1:
+        return None
+    depth, in_str, escape, end = 0, False, False, -1
+    for i, ch in enumerate(raw[start:], start):
+        if escape:
+            escape = False; continue
+        if ch == "\\" and in_str:
+            escape = True; continue
+        if ch == '"':
+            in_str = not in_str; continue
+        if in_str:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i; break
+    candidate = raw[start: end + 1] if end != -1 else raw[start:]
+    try:
+        return json.loads(candidate)
+    except json.JSONDecodeError:
+        pass
+    try:
+        result = ast.literal_eval(candidate)
+        if isinstance(result, dict):
+            return result
+    except Exception:
+        pass
+    return None
+
+
+# ── Gemini call ────────────────────────────────────────────────
+async def _generate(messages: list[dict], system: str) -> str:
+    return await asyncio.to_thread(gemini.generate_text, messages, system)
+
+
+# ── Tool execution ─────────────────────────────────────────────
+async def _execute_tool(name: str, args: dict) -> str:
     if name == "search_knowledge":
         query = args.get("query", "")
-        top_k = args.get("top_k", 5)
-        results = search_knowledge.run(query, top_k)
-        context = "\n\n".join(
+        top_k = int(args.get("top_k", 5))
+        await broadcast("log", {"message": f"查詢知識庫：「{query}」"})
+        results = await asyncio.to_thread(search_knowledge.run, query, top_k)
+        await broadcast("log", {"message": f"取得 {len(results)} 筆相關段落（第 {', '.join(str(r['page']) for r in results)} 頁）"})
+        return "\n\n".join(
             f"來源：{r['source']}，第 {r['page']} 頁\n{r['text']}" for r in results
         )
-        return context, "已查詢知識庫"
 
-    elif name == "create_notebooklm":
+    if name == "create_notebooklm":
         if not state.uploaded_file_path:
-            return "尚未上傳任何文件。", "create_notebooklm"
-        title = args.get("title", "DocMind Notebook")
-        url = await create_notebooklm.run(state.uploaded_file_path, title)
-        return url, "已建立 NotebookLM"
+            return "尚未上傳任何文件，請先上傳後再建立 NotebookLM。"
+        title = args.get("title", "Interview Practice Notebook")
+        await broadcast("log", {"message": f"[NotebookLM] 啟動瀏覽器自動化，建立筆記本：{title}"})
+        url = await notebooklm.run(state.uploaded_file_path, title)
+        await broadcast("log", {"message": f"[NotebookLM] 完成，筆記本連結：{url}"})
+        return f"NotebookLM 筆記本已建立，請點此開啟：{url}"
 
-    return "", name
+    return f"未知工具：{name}"
 
 
+# ── ReAct loop ─────────────────────────────────────────────────
 async def chat(history: list[dict], user_message: str) -> dict:
-    """
-    history: [{"role": "user"|"model", "parts": [{"text": "..."}]}]
-    Returns: {"content": str, "tool": str | None}
-    """
-    contents = list(history) + [
-        types.Content(role="user", parts=[types.Part(text=user_message)])
+    await broadcast("log", {"message": f"[使用者] {user_message}"})
+    await broadcast("log", {"message": f"[系統] 啟動 ReAct 迴圈，模型：{gemini.MODEL}"})
+    await broadcast("log", {"message": f"[系統] 知識庫狀態：{'已就緒（' + state.last_filename + '）' if state.last_filename else '尚未上傳文件'}"})
+
+    today          = datetime.now().strftime("%Y-%m-%d %H:%M")
+    system_desc    = _load_prompt("prompt_system.md")
+    template       = _load_prompt("prompt_react.md")
+    system         = _fill_template(
+        template,
+        system_description=system_desc,
+        today=today,
+        system_context="知識庫狀態：" + ("已就緒（" + state.last_filename + "）" if state.last_filename else "尚未上傳文件"),
+        tools_context=_build_tools_context(_TOOLS),
+    )
+
+    messages: list[dict] = [
+        {"role": m["role"], "content": m["content"]}
+        for m in history
     ]
+    messages.append({"role": "user", "content": user_message})
 
-    response = gemini.generate(contents, system=SYSTEM)
-    candidate = response.candidates[0]
-    part = candidate.content.parts[0]
+    tool_label = None
 
-    # Function call requested
-    if part.function_call:
-        fn_name = part.function_call.name
-        fn_args = dict(part.function_call.args)
+    for iteration in range(MAX_ITERATIONS):
+        logger.info("[ReAct] 迭代 %d / %d", iteration + 1, MAX_ITERATIONS)
+        await broadcast("log", {"message": f"[第 {iteration + 1} 輪] 模型推論中..."})
 
-        tool_result, tool_label = await _execute_tool(fn_name, fn_args)
+        raw  = await _generate(messages, system)
+        step = _parse_json(raw)
 
-        # Send tool result back to Gemini
-        contents.append(candidate.content)
-        contents.append(
-            types.Content(
-                role="user",
-                parts=[
-                    types.Part(
-                        function_response=types.FunctionResponse(
-                            name=fn_name,
-                            response={"result": tool_result},
-                        )
-                    )
-                ],
-            )
+        if not step:
+            logger.warning("[ReAct] JSON 解析失敗：%s", raw)
+            await broadcast("log", {"message": f"[錯誤] 模型輸出無法解析，完整輸出如下：\n{raw}"})
+            return {"content": "抱歉，我無法理解這個問題，請重新描述。", "tool": None}
+
+        # 直接回答
+        if "answer" in step:
+            answer = str(step["answer"]).strip()
+            await broadcast("log", {"message": f"[第 {iteration + 1} 輪] 模型直接回答（{len(answer)} 字）"})
+            logger.info("[ReAct] 回答完成，長度=%d 字", len(answer))
+            return {"content": answer, "tool": tool_label}
+
+        action  = step.get("action", "")
+        args    = {k: v for k, v in (step.get("arguments") or {}).items() if v is not None and v != ""}
+        thought = step.get("thought", "")
+
+        if not action:
+            await broadcast("log", {"message": "[錯誤] 模型未指定 action，終止迴圈"})
+            return {"content": "抱歉，我無法理解這個問題，請重新描述。", "tool": None}
+
+        await broadcast("log", {"message": f"[第 {iteration + 1} 輪] Thought：{thought}"})
+        await broadcast("log", {"message": f"[第 {iteration + 1} 輪] Action：{action}，參數：{json.dumps(args, ensure_ascii=False)}"})
+        tool_label = action
+
+        observation = await _execute_tool(action, args)
+
+        preview = observation[:200] + "..." if len(observation) > 200 else observation
+        await broadcast("log", {"message": f"[第 {iteration + 1} 輪] Observation：{preview}"})
+
+        obs_message = (
+            f"Thought：{thought}\n"
+            f"Action：{action}\n"
+            f"Observation：\n{observation}\n\n"
+            f"請根據以上觀察繼續推理，輸出下一步 JSON。"
         )
+        messages.append({"role": "model", "content": raw})
+        messages.append({"role": "user", "content": obs_message})
 
-        final_response = gemini.generate(contents, system=SYSTEM)
-        final_text = final_response.candidates[0].content.parts[0].text
-        return {"content": final_text, "tool": tool_label}
-
-    return {"content": part.text, "tool": None}
+    logger.warning("[ReAct] 達到最大迭代次數 %d", MAX_ITERATIONS)
+    await broadcast("log", {"message": f"[系統] 達到最大迭代次數 {MAX_ITERATIONS}，強制終止"})
+    return {"content": "處理超時，請重新提問。", "tool": tool_label}

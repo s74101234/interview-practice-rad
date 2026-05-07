@@ -11,11 +11,15 @@ _history: list[dict] = []
 async def chat_endpoint(req: ChatRequest):
     global _history
 
-    result = await chat(_history, req.message)
+    try:
+        result = await chat(_history, req.message)
+    except Exception as e:
+        return ChatResponse(
+            message=ChatMessage(role="assistant", content=f"⚠️ {e}", tool=None)
+        )
 
-    from google.genai import types
-    _history.append(types.Content(role="user", parts=[types.Part(text=req.message)]))
-    _history.append(types.Content(role="model", parts=[types.Part(text=result["content"])]))
+    _history.append({"role": "user", "content": req.message})
+    _history.append({"role": "model", "content": result["content"]})
 
     if len(_history) > 12:
         _history = _history[-12:]

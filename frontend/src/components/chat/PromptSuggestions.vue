@@ -13,8 +13,8 @@
 const emit = defineEmits<{ select: [text: string] }>()
 
 const suggestions = [
-  '請問你能做什麼？',
-  '請介紹這份文件',
-  '請將目前上傳的文件整理成簡報',
+  '這個系統有什麼功能？',
+  '作者有哪些技術能力與專案經驗？',
+  '幫我將這份文件建立成 NotebookLM 簡報',
 ]
 </script>

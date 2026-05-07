@@ -1,12 +1,5 @@
 from qdrant_client import QdrantClient
-from qdrant_client.models import (
-    Distance,
-    VectorParams,
-    PointStruct,
-    Filter,
-    FieldCondition,
-    MatchValue,
-)
+from qdrant_client.models import Distance, VectorParams, PointStruct
 from pathlib import Path
 
 COLLECTION = "knowledge_base"
@@ -55,18 +48,35 @@ def upsert(chunks: list[dict], vectors: list[list[float]]) -> None:
 
 def search(query_vector: list[float], top_k: int = 5) -> list[dict]:
     _ensure_collection()
-    results = _get_client().search(
+    results = _get_client().query_points(
         collection_name=COLLECTION,
-        query_vector=query_vector,
+        query=query_vector,
         limit=top_k,
         with_payload=True,
-    )
+    ).points
     return [
         {
             "text": r.payload["text"],
             "source": r.payload["source"],
             "page": r.payload["page"],
             "score": round(r.score, 4),
+        }
+        for r in results
+    ]
+
+
+def scroll_all() -> list[dict]:
+    _ensure_collection()
+    results, _ = _get_client().scroll(
+        collection_name=COLLECTION,
+        with_payload=True,
+        limit=1000,
+    )
+    return [
+        {
+            "text": r.payload["text"],
+            "source": r.payload["source"],
+            "page": r.payload["page"],
         }
         for r in results
     ]
