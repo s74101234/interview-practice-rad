@@ -8,6 +8,7 @@ export default defineConfig({
       '/upload': 'http://localhost:8000',
       '/chat': 'http://localhost:8000',
       '/status': 'http://localhost:8000',
+      '/cancel': 'http://localhost:8000',
       '/mcp': 'http://localhost:8000',
     },
   },
