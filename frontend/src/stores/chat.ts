@@ -1,22 +1,33 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { sendMessage, type ChatMessage } from '../api/chat'
+import { sendMessage, cancelChat, type ChatMessage } from '../api/chat'
 
 export const useChatStore = defineStore('chat', () => {
   const history = ref<ChatMessage[]>([])
   const isAnswering = ref(false)
+  let _abortController: AbortController | null = null
 
   async function send(message: string) {
     history.value.push({ role: 'user', content: message })
     isAnswering.value = true
+    _abortController = new AbortController()
     try {
-      const reply = await sendMessage(message)
+      const reply = await sendMessage(message, _abortController.signal)
       history.value.push(reply)
     } catch (e: any) {
-      history.value.push({ role: 'assistant', content: `錯誤：${e.message}` })
+      if (e.name !== 'AbortError') {
+        history.value.push({ role: 'assistant', content: `錯誤：${e.message}` })
+      }
     } finally {
       isAnswering.value = false
+      _abortController = null
     }
+  }
+
+  async function cancel() {
+    await cancelChat()
+    _abortController?.abort()
+    isAnswering.value = false
   }
 
   function clear() {
@@ -24,5 +35,5 @@ export const useChatStore = defineStore('chat', () => {
     isAnswering.value = false
   }
 
-  return { history, isAnswering, send, clear }
+  return { history, isAnswering, send, cancel, clear }
 })

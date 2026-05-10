@@ -10,7 +10,7 @@ import core.app_state as state
 from core.schemas import UploadResponse
 from services.ingestion_pipeline import parser, cleaner, chunker
 from services.models.embedder import embed_texts
-from services.data.store import upsert
+from services.data.store import upsert, reset
 
 router = APIRouter()
 UPLOAD_DIR = Path("uploads")
@@ -78,6 +78,16 @@ async def upload_file(file: UploadFile = File(...)):
     ext = Path(file.filename).suffix.lower()
     if ext != ".pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
+
+    # 清除舊檔案與向量資料庫
+    if state.uploaded_file_path:
+        old = Path(state.uploaded_file_path)
+        if old.exists():
+            old.unlink()
+    await asyncio.to_thread(reset)
+    state.uploaded_file_path = None
+    state.last_filename = None
+    state.last_chunk_count = 0
 
     job_id = str(uuid.uuid4())
     dest = UPLOAD_DIR / f"{job_id}{ext}"

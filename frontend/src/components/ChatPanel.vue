@@ -18,7 +18,8 @@
           :class="msg.role === 'user'
             ? 'bg-[--color-primary] text-[--color-text-on-primary] rounded-2xl rounded-br-sm'
             : 'bg-[--color-bg-elevated] text-[--color-text-primary] border border-[--color-border] rounded-2xl rounded-bl-sm'"
-        >{{ msg.content }}</div>
+          v-html="msg.role === 'user' ? escapeHtml(msg.content) : renderLinks(msg.content)"
+        />
         <span v-if="msg.tool" class="ui-caption text-[--color-text-muted] px-1">[ {{ msg.tool }} ]</span>
       </div>
 
@@ -26,7 +27,7 @@
       <div v-if="chatStore.isAnswering" class="flex items-start">
         <div class="bg-[--color-bg-elevated] border border-[--color-border] rounded-2xl rounded-bl-sm px-4 py-2.5 ui-body text-[--color-text-muted] flex items-center gap-2">
           <span class="w-3 h-3 rounded-full border-2 border-[--color-primary] border-t-transparent animate-spin flex-shrink-0" />
-          <span class="animate-pulse">思考中</span>
+          <span class="animate-pulse">{{ uploadStore.currentThought || '思考中' }}</span>
         </div>
       </div>
 
@@ -61,7 +62,19 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
         </svg>
       </button>
+      <!-- 執行中：停止按鈕；閒置：清除按鈕 -->
       <button
+        v-if="chatStore.isAnswering"
+        @click="chatStore.cancel()"
+        title="中斷執行"
+        class="border border-[--color-border] w-10 h-10 flex items-center justify-center flex-shrink-0 transition rounded-xl text-[--color-text-secondary] hover:text-red-500 hover:border-red-400 hover:bg-[--color-bg-elevated]"
+      >
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <rect x="5" y="5" width="14" height="14" rx="2"/>
+        </svg>
+      </button>
+      <button
+        v-else
         @click="onClear"
         :disabled="chatStore.history.length === 0 && !input.trim()"
         title="清除對話"
@@ -82,9 +95,22 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import { useChatStore } from '../stores/chat'
+import { useUploadStore } from '../stores/upload'
 import PromptSuggestions from './chat/PromptSuggestions.vue'
 
+function escapeHtml(text: string) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+function renderLinks(text: string) {
+  return escapeHtml(text).replace(
+    /(https?:\/\/[^\s]+)/g,
+    '<a href="$1" target="_blank" rel="noopener" class="text-blue-500 underline hover:opacity-80">$1</a>'
+  )
+}
+
 const chatStore      = useChatStore()
+const uploadStore    = useUploadStore()
 const input          = ref('')
 const bottomEl       = ref<HTMLElement | null>(null)
 const textareaEl     = ref<HTMLTextAreaElement | null>(null)

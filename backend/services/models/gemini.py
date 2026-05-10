@@ -7,6 +7,7 @@ from core.config import settings
 
 logger = logging.getLogger("interview.models.gemini")
 
+# MODEL       = "gemini-2.5-flash-lite"
 MODEL       = "gemini-2.5-flash"
 TEMPERATURE = 0.0
 MAX_RETRY   = 3
@@ -49,10 +50,15 @@ def generate_text(messages: list[dict], system: str) -> str:
                 msg = str(e)
                 if "limit: 0" in msg:
                     raise RuntimeError("API 配額已耗盡，請至 aistudio.google.com 確認 API Key。")
-                match = re.search(r"'retryDelay': '(\d+)s'", msg)
-                wait = int(match.group(1)) if match else 20
-                if attempt < 1:
-                    logger.warning("Rate limited, waiting %ds before retry", wait)
+                # 每日配額耗盡（PerDay），retry 無意義
+                if "PerDay" in msg:
+                    raise RuntimeError("今日 API 配額已用完，請明日再試或更換 API Key。")
+                # 每分鐘限流（PerMinute），等待後 retry
+                match = re.search(r"'retryDelay': '([\d.]+)s'", msg)
+                wait = int(float(match.group(1))) if match else RETRY_WAIT
+                wait = max(wait, 1)
+                if attempt < MAX_RETRY - 1:
+                    logger.warning("Rate limited (RPM), waiting %ds before retry", wait)
                     time.sleep(wait)
                 else:
                     raise RuntimeError("請求頻率過高，請稍後再試。")

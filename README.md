@@ -20,9 +20,10 @@ Built as a take-home assignment for the **AI Application Engineer** position at 
 
 | Feature | Description |
 |---|---|
-| Document Upload | Accepts PDF; triggers background ingestion pipeline (parse → clean → chunk → embed) |
+| Document Upload | Accepts PDF; replaces previous file and resets Qdrant — system always holds exactly one document |
 | Knowledge Base | Chunked content embedded via gemini-embedding-001 (3072-dim) and stored in Qdrant |
 | AI Chat | Gemini ReAct agent — queries knowledge base or creates NotebookLM based on user intent |
+| Task Cancellation | Stop button (■) during execution calls `POST /cancel` + AbortController to interrupt mid-task |
 | MCP Server | External agents can connect and call `search_knowledge` or `create_notebooklm` |
 | NotebookLM | Playwright automates Edge to create a notebook from the uploaded PDF and returns a shareable link |
 
@@ -41,10 +42,12 @@ interview-practice-rad/
 │       ├── models/
 │       ├── data/
 │       ├── mcp/
-│       │   └── tools/          # .py + .json schema per tool
+│       │   └── tools/
+│       │       ├── notebooklm/     # agent.py + browser.py + browser.json + prompt_browser.md
+│       │       └── *.json          # MCP tool schemas
 │       └── chat/
-│           ├── tools/          # load_tools() reads mcp/tools/*.json
-│           └── prompts/        # prompt_system.md + prompt_react.md
+│           ├── tools/              # load_tools() reads mcp/tools/*.json
+│           └── prompts/            # prompt_system.md + prompt_react.md
 ├── frontend/
 ├── task2/                      # Claude Code Skills
 ├── task3/                      # Standalone browser automation agent

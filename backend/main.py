@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import upload, chat, status
+from routers import upload, chat, status, cancel
 
 # 清空上傳暫存資料夾
 _UPLOAD_DIR = Path(__file__).parent / "uploads"
@@ -24,6 +24,7 @@ app.add_middleware(
 app.include_router(upload.router)
 app.include_router(chat.router)
 app.include_router(status.router)
+app.include_router(cancel.router)
 
 
 @app.get("/health")

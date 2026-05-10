@@ -1,4 +1,5 @@
 import asyncio
+import threading
 from typing import Optional
 
 # SSE broadcast queue — one queue shared across all clients
@@ -8,6 +9,9 @@ _sse_queue: asyncio.Queue = asyncio.Queue()
 uploaded_file_path: Optional[str] = None
 last_filename: Optional[str] = None
 last_chunk_count: int = 0
+
+# Cancellation signal — set by POST /cancel, cleared at start of each chat request
+cancel_event = threading.Event()
 
 
 async def broadcast(event: str, data: dict) -> None:

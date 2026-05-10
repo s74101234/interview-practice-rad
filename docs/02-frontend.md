@@ -1,6 +1,6 @@
 # 02. 前端設計
 
-> 最後更新：2026-05-07
+> 最後更新：2026-05-11
 
 ---
 
@@ -93,7 +93,9 @@ history: { role: 'user' | 'assistant'; content: string; tool?: string }[]
 isAnswering: boolean
 
 // Actions
-sendMessage(message: string)   // POST /chat
+send(message: string)    // POST /chat，內部建立 AbortController
+cancel()                 // POST /cancel + abort fetch，立即停止執行中任務
+clear()                  // 清除對話紀錄
 ```
 
 ---
@@ -140,7 +142,9 @@ done    ██████ 100%   知識庫就緒
 ```
 
 - 輸入框 + 送出按鈕（Enter 鍵觸發）
-- 回答中顯示 loading（三點動畫）
+- 回答中顯示 loading（spinning 動畫 + 當前 thought 文字）
+- 執行中右下角按鈕切換為 ■ 停止圖示，hover 變紅，點擊立即中斷任務
+- 閒置時右下角為垃圾桶清除按鈕
 - 知識庫未建立時輸入框 disabled
 
 ### `PromptSuggestions.vue`
@@ -151,7 +155,7 @@ done    ██████ 100%   知識庫就緒
 |---|---|
 | 這個系統有什麼功能？ | 系統自我介紹（不呼叫工具）|
 | 作者有哪些技術能力與專案經驗？ | search_knowledge |
-| 幫我將這份文件建立成 NotebookLM 簡報 | create_notebooklm |
+| 幫我將這份文件建立成 NotebookLM 筆記本 | create_notebooklm |
 
 ---
 

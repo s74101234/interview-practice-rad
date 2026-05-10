@@ -108,15 +108,33 @@ async def _execute_tool(name: str, args: dict) -> str:
             return "尚未上傳任何文件，請先上傳後再建立 NotebookLM。"
         title = args.get("title", "Interview Practice Notebook")
         await broadcast("log", {"message": f"[NotebookLM] 啟動瀏覽器自動化，建立筆記本：{title}"})
-        url = await notebooklm.run(state.uploaded_file_path, title)
-        await broadcast("log", {"message": f"[NotebookLM] 完成，筆記本連結：{url}"})
-        return f"NotebookLM 筆記本已建立，請點此開啟：{url}"
+        try:
+            loop = asyncio.get_event_loop()
+
+            def sync_log(message: str) -> None:
+                asyncio.run_coroutine_threadsafe(
+                    broadcast("log", {"message": message}), loop
+                )
+
+            url = await asyncio.to_thread(notebooklm.run, state.uploaded_file_path, title, sync_log)
+            await broadcast("log", {"message": f"[NotebookLM] 完成，筆記本連結：{url}"})
+            return f"NotebookLM 筆記本已建立，請點此開啟：{url}"
+        except Exception as e:
+            import traceback
+            detail = str(e) or repr(e) or type(e).__name__
+            tb = traceback.format_exc()
+            logger.error("[NotebookLM] 自動化失敗\n%s", tb)
+            await broadcast("log", {"message": f"[NotebookLM] 錯誤類型：{type(e).__name__}"})
+            await broadcast("log", {"message": f"[NotebookLM] 錯誤訊息：{detail}"})
+            await broadcast("log", {"message": f"[NotebookLM] Traceback：\n{tb}"})
+            raise
 
     return f"未知工具：{name}"
 
 
 # ── ReAct loop ─────────────────────────────────────────────────
 async def chat(history: list[dict], user_message: str) -> dict:
+    state.cancel_event.clear()
     await broadcast("log", {"message": f"[使用者] {user_message}"})
     await broadcast("log", {"message": f"[系統] 啟動 ReAct 迴圈，模型：{gemini.MODEL}"})
     await broadcast("log", {"message": f"[系統] 知識庫狀態：{'已就緒（' + state.last_filename + '）' if state.last_filename else '尚未上傳文件'}"})
@@ -128,7 +146,10 @@ async def chat(history: list[dict], user_message: str) -> dict:
         template,
         system_description=system_desc,
         today=today,
-        system_context="知識庫狀態：" + ("已就緒（" + state.last_filename + "）" if state.last_filename else "尚未上傳文件"),
+        system_context=(
+            f"使用模型：{gemini.MODEL}\n"
+            "知識庫狀態：" + ("已就緒（" + state.last_filename + "）" if state.last_filename else "尚未上傳文件")
+        ),
         tools_context=_build_tools_context(_TOOLS),
     )
 

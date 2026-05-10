@@ -1,6 +1,6 @@
 # 01. 後端設計
 
-> 最後更新：2026-05-07
+> 最後更新：2026-05-11
 
 ---
 
@@ -82,9 +82,10 @@ backend/
 │   ├── app_state.py                 全域狀態（uploaded_file_path, last_filename）
 │   └── config.py                    環境變數（Pydantic Settings）
 ├── routers/
-│   ├── upload.py                    文件上傳與觸發 pipeline
+│   ├── upload.py                    文件上傳與觸發 pipeline（新上傳自動替換舊資料）
 │   ├── chat.py                      聊天介面
-│   └── status.py                    SSE 進度推播
+│   ├── status.py                    SSE 進度推播
+│   └── cancel.py                    POST /cancel，設定中斷訊號
 └── services/
     ├── ingestion_pipeline/
     │   ├── parser.py                pymupdf4llm，PDF → Markdown
@@ -94,14 +95,18 @@ backend/
     │   ├── embedder.py              gemini-embedding-001，3072-dim
     │   └── gemini.py               gemini-2.5-flash，內建 retry
     ├── data/
-    │   └── store.py                Qdrant upsert / query_points / scroll_all
+    │   └── store.py                Qdrant upsert / query_points / scroll_all / reset
     ├── mcp/
     │   ├── server.py               FastMCP，掛載兩個工具
     │   └── tools/
     │       ├── search_knowledge.py  向量搜尋實作
     │       ├── search_knowledge.json  工具 JSON Schema
-    │       ├── notebooklm.py        Playwright 瀏覽器自動化
-    │       └── notebooklm.json      工具 JSON Schema
+    │       ├── notebooklm/
+    │       │   ├── agent.py         Gemini ReAct 迴圈（瀏覽器自動化）
+    │       │   ├── browser.py       Playwright 原子動作
+    │       │   ├── browser.json     8 個動作的 JSON Schema
+    │       │   └── prompt_browser.md  Task / Steps / Don't / Tools
+    │       └── notebooklm.json      MCP 工具 JSON Schema
     └── chat/
         ├── chat_agent.py            ReAct 推理迴圈
         ├── tools/
@@ -180,13 +185,22 @@ Gemini 輸出 JSON（每輪）
 
 ### Playwright Agent
 
-NotebookLM 無公開 API，採用 Playwright 操作 Edge 持久化 context（免重新登入）。
+NotebookLM 無公開 API，採用 Playwright 操作 Edge 持久化 context（免重新登入）。以 Gemini 驅動 ReAct 迴圈（最多 20 步），每步讀取 `get_page_state()` 決定下一個動作。
 
 ```
-載入 Edge User Data → 啟動 Edge（headless=False）
-→ 建立 Notebook → 上傳 PDF → 等待索引
-→ 開啟分享連結 → 回傳 URL
+載入 Edge User Data → 啟動 Edge（headless=False）→ 授予 clipboard 權限
+→ 建立 Notebook → 上傳 PDF（expect_file_chooser 攔截，不產生 OS 視窗）
+→ 點共用 → Escape 關閉 PeopleKit → 展開 generalAccess（不帶 force）
+→ 選「知道連結的使用者」→ 點「複製連結」→ get_clipboard → finish
 ```
+
+`cancel_event` 每步檢查，中斷時立即關閉 context。
+
+### 任務中斷
+
+`POST /cancel` 設定 `threading.Event`，同時作用於：
+- Browser Agent 迴圈（下一步前檢查）
+- HTTP fetch（前端 AbortController abort）
 
 ---
 
@@ -250,3 +264,12 @@ GEMINI_API_KEY=
 EDGE_USER_DATA=C:\Users\user\AppData\Local\Microsoft\Edge\User Data
 EDGE_PROFILE=Default
 ```
+
+### 上傳替換邏輯
+
+系統只保留一份文件。新 PDF 上傳時：
+
+1. 刪除 `uploads/` 中的舊檔案
+2. 呼叫 `store.reset()` 刪除並重建 Qdrant collection
+3. 清空 `app_state` 的 filename / chunk_count
+4. 執行新 pipeline

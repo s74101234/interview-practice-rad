@@ -12,6 +12,7 @@ export const useUploadStore = defineStore('upload', () => {
   const error = ref<string | null>(null)
   const isReady = ref(false)
   const logs = ref<string[]>([])
+  const currentThought = ref<string | null>(null)
 
   let es: EventSource | null = null
 
@@ -39,6 +40,10 @@ export const useUploadStore = defineStore('upload', () => {
     es.addEventListener('log', (e) => {
       const d = JSON.parse(e.data)
       addLog(d.message)
+      const reactMatch   = d.message.match(/\[第 \d+ 輪\] Thought：(.+)/)
+      const browserMatch = d.message.match(/\[Browser\] Thought：(.+)/)
+      const match = reactMatch || browserMatch
+      if (match) currentThought.value = match[1].trim()
     })
 
     es.addEventListener('pipeline_progress', (e) => {
@@ -95,5 +100,5 @@ export const useUploadStore = defineStore('upload', () => {
     startStatusStream()
   }
 
-  return { isProcessing, currentStage, chunkCount, filename, error, isReady, logs, upload, startStatusStream, restoreState }
+  return { isProcessing, currentStage, chunkCount, filename, error, isReady, logs, currentThought, upload, startStatusStream, restoreState }
 })

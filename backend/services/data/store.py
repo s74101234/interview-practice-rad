@@ -27,6 +27,18 @@ def _ensure_collection() -> None:
         )
 
 
+def reset() -> None:
+    """刪除並重建 collection，清除舊文件的所有向量。"""
+    client = _get_client()
+    existing = [c.name for c in client.get_collections().collections]
+    if COLLECTION in existing:
+        client.delete_collection(COLLECTION)
+    client.create_collection(
+        collection_name=COLLECTION,
+        vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
+    )
+
+
 def upsert(chunks: list[dict], vectors: list[list[float]]) -> None:
     _ensure_collection()
     points = [
