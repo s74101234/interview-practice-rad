@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     qdrant_port: int = 6333
     edge_user_data: str = r"C:\Users\user\AppData\Local\Microsoft\Edge\User Data"
     edge_profile: str = "Default"
+    notebooklm_enabled: bool = True
 
     class Config:
         env_file = str(_ENV_FILE)
