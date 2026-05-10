@@ -104,6 +104,8 @@ async def _execute_tool(name: str, args: dict) -> str:
         )
 
     if name == "create_notebooklm":
+        if notebooklm is None:
+            return "NotebookLM 自動化功能僅支援本地端執行（需要 Windows + Edge 瀏覽器與已登入的 Google 帳號），雲端版本不提供此功能。完整示範請參考影片說明。"
         if not state.uploaded_file_path:
             return "尚未上傳任何文件，請先上傳後再建立 NotebookLM。"
         title = args.get("title", "Interview Practice Notebook")
