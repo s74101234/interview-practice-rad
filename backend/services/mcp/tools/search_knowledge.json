@@ -1,0 +1,35 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "search_knowledge",
+      "description": "search_knowledge：向量語意搜尋已上傳文件的知識庫，回傳相關段落。\n適用：使用者詢問文件內容、背景經歷、技術能力、專案細節等需要從文件中查找資訊的問題。\n不適用：使用者詢問本系統功能、閒聊、或可直接回答的一般性問題。\n執行後：回傳相關段落與來源頁碼，供後續推理與回答使用。",
+      "examples": [
+        "你的工作經歷是什麼",
+        "有哪些技術能力",
+        "做過什麼專案",
+        "學歷背景",
+        "有什麼證照或獎項",
+        "聯絡方式是什麼",
+        "你在哪裡工作過",
+        "有沒有 AI 相關經驗",
+        "擅長什麼程式語言",
+        "這份文件說了什麼"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "語意搜尋查詢字串"
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "回傳段落數，預設 5"
+          }
+        },
+        "required": ["query"]
+      }
+    }
+  }
+]

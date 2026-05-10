@@ -2,7 +2,7 @@
 .env
 .env.*
 *.env
-tools/
+/tools/
 
 # Python
 __pycache__/

@@ -1,0 +1,27 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "create_notebooklm",
+      "description": "create_notebooklm：自動將已上傳的文件加入 NotebookLM，回傳可公開分享的筆記本連結。\n適用：使用者要求建立 NotebookLM 筆記本、產生可分享連結、將文件加入 NotebookLM 時使用。\n不適用：使用者只是想查詢文件內容（那是 search_knowledge 的工作）。\n執行後：瀏覽器自動完成建立與分享設定，回傳公開連結，使用者點開即可在 NotebookLM 使用 AI 問答與摘要功能。",
+      "examples": [
+        "幫我建立 NotebookLM",
+        "把這份文件加到 NotebookLM",
+        "產生一個可分享的筆記本連結",
+        "用 NotebookLM 整理這份文件",
+        "建立筆記本",
+        "幫我分享這份文件"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "NotebookLM 筆記本標題"
+          }
+        },
+        "required": ["title"]
+      }
+    }
+  }
+]

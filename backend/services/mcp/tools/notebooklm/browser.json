@@ -1,0 +1,126 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "click",
+      "description": "依按鈕可見文字點擊頁面上的按鈕。若點擊失敗（元素不可互動或被遮罩覆蓋），改用 force_click。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "按鈕上的可見文字，須與 page_state.buttons 中的值一致"
+          }
+        },
+        "required": ["text"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "force_click",
+      "description": "強制點擊按鈕，略過 overlay / backdrop 遮罩層的攔截。當 click 因遮罩導致 timeout 時使用。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "按鈕上的可見文字，須與 page_state.buttons 中的值一致"
+          }
+        },
+        "required": ["text"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "click_by_css",
+      "description": "以 CSS Selector 精確定位並點擊元素。適用於 Angular Material 元件（如 mat-select）無法透過文字定位的情況。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "selector": {
+            "type": "string",
+            "description": "有效的 CSS Selector，例如 mat-select[formcontrolname='generalAccess']"
+          }
+        },
+        "required": ["selector"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "upload_file",
+      "description": "將指定 PDF 直接寫入頁面的 input[type='file']，繞過系統檔案選擇器對話框。在點擊「上傳檔案」按鈕後使用。",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "press_key",
+      "description": "送出鍵盤按鍵。常用於關閉彈出層（Escape）或確認輸入（Enter）。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Playwright 鍵盤按鍵名稱，例如 Escape、Enter、Tab"
+          }
+        },
+        "required": ["key"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "wait",
+      "description": "等待指定秒數，讓頁面動畫或非同步載入完成後再繼續。常用於開啟對話框、下拉選單展開後等待 options 出現。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "seconds": {
+            "type": "integer",
+            "description": "等待秒數，上限 30"
+          }
+        },
+        "required": ["seconds"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "get_clipboard",
+      "description": "讀取系統剪貼簿內容。在點擊「複製連結」後立即使用，取得 NotebookLM 存入剪貼簿的公開分享 URL。",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "finish",
+      "description": "任務完成，回傳公開分享連結並結束自動化流程。url 必須來自 get_clipboard 的回傳值，不可使用 page.url。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "來自 get_clipboard 的完整 NotebookLM 公開分享連結"
+          }
+        },
+        "required": ["url"]
+      }
+    }
+  }
+]
