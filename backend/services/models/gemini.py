@@ -7,8 +7,8 @@ from core.config import settings
 
 logger = logging.getLogger("interview.models.gemini")
 
-# MODEL       = "gemini-2.5-flash-lite"
-MODEL       = "gemini-2.5-flash"
+MODEL       = "gemini-2.5-flash-lite"
+# MODEL       = "gemini-2.5-flash"
 TEMPERATURE = 0.0
 MAX_RETRY   = 3
 RETRY_WAIT  = 5
