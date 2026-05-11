@@ -11,8 +11,8 @@ Built as a take-home assignment for the **AI Application Engineer** position at 
 | Task | Requirement | Implementation |
 |---|---|---|
 | Task 1 | Unstructured Data Pipeline & Remote MCP Server | PDF ingestion pipeline (parse → clean → chunk → embed) + FastMCP server exposing `search_knowledge` and `create_notebooklm` |
-| Task 2 | Data Preprocessing as Claude Skills | `/parse-doc` `/clean-text` `/chunk-doc` `/build-kb` — Claude Code Skills sharing the same ingestion logic |
-| Task 3 | Browser Automation Agent | Playwright automates NotebookLM via Edge persistent context to create a notebook from the uploaded PDF and returns a shareable URL |
+| Task 2 | Data Preprocessing as Claude Skills | `/parse-doc` `/clean-text` `/chunk-doc` `/build-kb` — Claude Code Skills defined in `.claude/commands/`, sharing the same ingestion logic as the backend pipeline |
+| Task 3 | Browser Automation Agent | Playwright automates NotebookLM via Edge persistent context; implemented in `backend/services/mcp/tools/notebooklm/` and exposed as an MCP tool + chat intent |
 
 ---
 
@@ -35,6 +35,7 @@ Built as a take-home assignment for the **AI Application Engineer** position at 
 interview-practice-rad/
 ├── backend/
 │   ├── main.py
+│   ├── requirements.txt
 │   ├── core/
 │   ├── routers/
 │   └── services/
@@ -49,8 +50,15 @@ interview-practice-rad/
 │           ├── tools/              # load_tools() reads mcp/tools/*.json
 │           └── prompts/            # prompt_system.md + prompt_react.md
 ├── frontend/
-├── task2/                      # Claude Code Skills
-├── task3/                      # Standalone browser automation agent
+├── .claude/
+│   └── commands/               # Task 2 — Claude Code Skills
+│       ├── parse-doc.md
+│       ├── clean-text.md
+│       ├── chunk-doc.md
+│       └── build-kb.md
+├── tools/
+│   ├── generate_pdf.py         # helper to generate a sample PDF for testing
+│   └── sample.pdf
 ├── docs/
 │   ├── 01-backend.md
 │   └── 02-frontend.md
@@ -72,10 +80,13 @@ interview-practice-rad/
 
 ### Environment Variables
 
+Copy the template and fill in the values:
+
 ```bash
 cp .env.example .env
-# fill in GEMINI_API_KEY
 ```
+
+Each variable in `.env.example` has an inline description. Remove the `.example` suffix when done.
 
 ### Backend
 
@@ -86,6 +97,7 @@ python -m venv .venv
 # source .venv/bin/activate   # macOS / Linux
 
 pip install -r requirements.txt
+playwright install msedge
 python main.py
 ```
 

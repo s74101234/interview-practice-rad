@@ -1,9 +1,8 @@
-import os
 from . import search_knowledge
+from backend.core.config import settings
 
-# NotebookLM 需要本地 Windows + Edge 瀏覽器，雲端部署時停用
 notebooklm = None
-if os.getenv("NOTEBOOKLM_ENABLED", "true").lower() == "true":
+if settings.notebooklm_enabled:
     try:
         from . import notebooklm as _notebooklm
         notebooklm = _notebooklm
