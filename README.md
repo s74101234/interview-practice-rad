@@ -6,7 +6,7 @@ Built as a take-home assignment for the **AI Application Engineer** position at 
 
 ## Demo
 
-<video src="docs/260511_Demo_2x.mp4" controls width="100%"></video>
+![Demo](docs/260511_Demo_2x.gif)
 
 ---
 
