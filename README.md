@@ -4,6 +4,10 @@ An AI-powered document Q&A system. Upload a personal PDF, ask questions about it
 
 Built as a take-home assignment for the **AI Application Engineer** position at **瑞鼎科技 (RAD-IC)**, integrating all three tasks into a single deployable system.
 
+## Demo
+
+<video src="docs/260511_Demo_2x.mp4" controls width="100%"></video>
+
 ---
 
 ## Task Coverage
